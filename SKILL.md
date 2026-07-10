@@ -101,6 +101,7 @@ Keep creator-level analysis in a second table inside the same Feishu Base.
 - Use integer display for creator metrics. Do not show `.00` or `.0`.
 - For attachments, save avatar and background assets locally before uploading them to the record.
 - When creating or repairing the link field on `视频笔记`, use Feishu's `link` field with `link_table`, for example `{"name":"对标博主","type":"link","link_table":"tblwou5tJyHf4tMg"}`. Do not use `table_id`; the field-create API rejects it for link fields.
+- When writing a link-cell value, use `[{"id":"<creator_record_id>"}]`. Do not use `record_id` inside the cell value; Feishu rejects that shape.
 - The CLI currently creates this as a one-way link (`bidirectional: false`). If Lucas wants reverse inline display inside the Feishu UI, document that UI-side adjustment separately instead of blocking ingestion.
 
 Create the benchmark creator table when missing:
