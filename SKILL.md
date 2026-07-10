@@ -118,6 +118,15 @@ lark-cli base +table-create --as user \
   --fields '[{"name":"博主名称","type":"text"},{"name":"头像","type":"attachment"},{"name":"简介","type":"text"},{"name":"主页背景图","type":"attachment"},{"name":"粉丝量","type":"number","style":{"type":"plain","precision":0,"thousands_separator":false,"percentage":false}},{"name":"获赞和收藏量","type":"number","style":{"type":"plain","precision":0,"thousands_separator":false,"percentage":false}}]'
 ```
 
+Benchmark creator views:
+
+- Rename the default grid view to `表格视图`.
+- Create a gallery view named `卡片视图`.
+- Set `卡片视图` cover field to `主页背景图`, not `头像`; the background image gives each creator card a stronger profile-page feel.
+- In `卡片视图`, show fields in this order: `博主名称`, `头像`, `简介`, `粉丝量`, `获赞和收藏量`.
+- In `表格视图`, show fields in this order: `博主名称`, `头像`, `简介`, `主页背景图`, `粉丝量`, `获赞和收藏量`.
+- Keep creator metric fields as integers with no decimals.
+
 ## Interaction Number Fields
 
 Display interaction metrics as whole numbers.
