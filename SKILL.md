@@ -101,7 +101,9 @@ Useful options:
 - `--skip-feishu` creates only local artifacts for debugging.
 - `--force-create` creates a new video row even if the script finds a matching existing row.
 
-The script creates/updates local artifacts, resolves the creator, writes or updates the Feishu video row, uploads `cover_original.webp`, reads the row back, and writes `ingest_report.json`. It also avoids duplicate rows by matching `视频链接`, `note_id`, or exact title. Creator reuse is ID-first: `小红书用户ID` -> `小红书号` -> exact `博主名称`.
+The script creates/updates local artifacts, resolves the creator, writes or updates the Feishu video row, uploads `cover_original.webp`, reads the row back, and writes `ingest_report.json`. It avoids duplicate rows by matching the exact `视频链接` or a `note_id` contained in the stored link. Never update a record from an exact-title match alone because different notes can share the same title. Creator reuse is ID-first: `小红书用户ID` -> `小红书号` -> exact `博主名称`.
+
+When listing Feishu records for creator or video resolution, read every page with `limit` and `offset`. Do not stop after the first 200 rows.
 
 The script is the unified subtitle parser. It must support both TikHub subtitle shapes: a list and a language-grouped object such as `{"zh-CN":[...],"source":[...]}`.
 
@@ -200,7 +202,7 @@ Creator resolution SOP for every video ingestion:
    - First match exact `小红书用户ID`.
    - If absent or not found, match exact `小红书号`.
    - Only then match exact `博主名称` as a fallback, because creators can rename themselves.
-3. If an existing creator row is found, reuse its record id and write the video row's `作者` link to that record.
+3. If an existing creator row is found, reuse its record id and write the video row's `作者` link to that record. Refresh available profile fields and `最近更新时间`, and upload avatar/background assets when the corresponding attachment field is empty. If profile retrieval returns empty values, preserve the existing non-empty Feishu values.
 4. Build `主页链接` as `https://www.xiaohongshu.com/user/profile/<user_id>` when `user_id` is available. If only `red_id` is available, leave the field blank rather than guessing an unsupported profile URL.
 5. If the creator is new, call TikHub `get_user_info` with `user_id`, save the raw response under `小红书笔记采集/benchmark_creators/<creator_slug>/`, download avatar/background assets, create the `对标博主` row including `小红书用户ID`, `小红书号`, `主页链接`, and `最近更新时间`, upload attachments, and then write the video row's `作者` link.
 6. If `get_user_info` returns a transient network/SSL/EOF error or a non-profile response, retry once before creating the creator row. Save both the failed response and the retry response locally.

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+from collections import Counter
 import json
 import os
 import pathlib
@@ -353,35 +354,129 @@ def download_subtitles(note: dict[str, Any], assets_dir: pathlib.Path) -> tuple[
     return records, srt_to_text(pathlib.Path(chosen["file"]).read_text(errors="ignore"))
 
 
+SUMMARY_LOW_VALUE_PHRASES = (
+    "点赞",
+    "关注",
+    "评论区",
+    "下期再见",
+    "我们下期",
+    "记得三连",
+    "我是",
+    "哈喽大家",
+)
+SUMMARY_CONCLUSION_PHRASES = ("最终结论", "总的来说", "总结一下", "所以", "因此", "核心是")
+SUMMARY_SECTION_PHRASES = {
+    "问题与背景": ("问题", "痛点", "困难", "原因", "一开始", "背景", "需求", "浪费"),
+    "内容脉络": ("介绍", "说明", "接着", "然后", "过程", "主要"),
+    "核心方法": ("方法", "步骤", "首先", "接着", "然后", "通过", "使用", "核心"),
+    "实际应用": ("实际", "操作", "演示", "效果", "结果", "统计", "场景", "案例"),
+    "结论": SUMMARY_CONCLUSION_PHRASES,
+}
+
+
+def summary_sentences(transcript: str) -> list[str]:
+    normalized = re.sub(r"[\r\n]+", "。", transcript)
+    normalized = re.sub(r"\s+", " ", normalized)
+    sentences: list[str] = []
+    seen: set[str] = set()
+    for part in re.split(r"[。！？!?；;]+", normalized):
+        sentence = part.strip(" ，,：:")
+        if len(sentence) < 6 or sentence in seen:
+            continue
+        seen.add(sentence)
+        sentences.append(sentence)
+    return sentences
+
+
+def summary_terms(sentence: str) -> list[str]:
+    terms = [item.lower() for item in re.findall(r"[A-Za-z][A-Za-z0-9.+-]{1,}", sentence)]
+    chinese = "".join(re.findall(r"[\u4e00-\u9fff]", sentence))
+    terms.extend(chinese[index : index + 2] for index in range(max(0, len(chinese) - 1)))
+    return terms
+
+
+def shorten_summary_sentence(sentence: str, limit: int = 48) -> str:
+    sentence = sentence.strip(" ，,：:")
+    if len(sentence) <= limit:
+        return sentence
+    shortened = sentence[:limit]
+    for separator in ("，", "、", ","):
+        position = shortened.rfind(separator)
+        if position >= limit // 2:
+            return shortened[:position]
+    return shortened.rstrip() + "…"
+
+
+def pick_summary_sentence(
+    candidates: list[tuple[int, str]],
+    frequencies: Counter[str],
+    used_indexes: set[int],
+    preferred_phrases: tuple[str, ...] = (),
+) -> tuple[int, str] | None:
+    scored: list[tuple[float, int, str]] = []
+    for index, sentence in candidates:
+        if index in used_indexes:
+            continue
+        terms = summary_terms(sentence)
+        score = sum(frequencies[term] for term in set(terms)) / max(len(terms), 1)
+        if 16 <= len(sentence) <= 80:
+            score += 1.5
+        if any(phrase in sentence for phrase in SUMMARY_LOW_VALUE_PHRASES):
+            score -= 6
+        if any(phrase in sentence for phrase in SUMMARY_CONCLUSION_PHRASES):
+            score += 3
+        if any(phrase in sentence for phrase in preferred_phrases):
+            score += 4
+        scored.append((score, -index, sentence))
+    if not scored:
+        return None
+    _score, negative_index, sentence = max(scored)
+    return -negative_index, sentence
+
+
 def auto_summary(note: dict[str, Any], transcript: str) -> str:
-    chapters = nested(note, ["video_info_v2", "consumer", "chapters"], [])
-    chapter_titles = [str(item.get("text", "")).strip() for item in chapters if isinstance(item, dict)]
-    chapter_titles = [title for title in chapter_titles if title]
-    title = note.get("title") or "视频"
-    if len(chapter_titles) >= 3:
-        first = chapter_titles[0]
-        second = chapter_titles[1]
-        third = "、".join(chapter_titles[2:4])
-        summary = (
-            f"1、先交代主题\n作者围绕「{title}」说明这条视频要解决的具体使用场景。\n\n"
-            f"2、展开关键步骤\n视频依次讲到{first}、{second}等内容，把工具和操作路径展示出来。\n\n"
-            f"3、补充实际用法\n后半段重点落在{third}，说明怎么把想法变成可执行的工作流。\n\n"
-            f"4、结论\n核心价值是按自己的需求定制流程，让 AI 帮忙把复杂任务整理清楚。"
+    sentences = summary_sentences(transcript)
+    if not sentences:
+        return (
+            "1、内容概览\n当前视频没有可用字幕，暂时无法可靠还原内容结构。\n\n"
+            "2、结论\n补充字幕后，应基于完整文字内容重新生成总结。"
         )
-    elif transcript:
-        first_line = transcript.splitlines()[0][:28]
-        summary = (
-            "1、说明背景\n"
-            f"视频从「{first_line}」切入，交代作者要解决的真实问题。\n\n"
-            "2、展示过程\n作者围绕工具选择、操作步骤和实际效果，说明如何把想法落到具体流程里。\n\n"
-            "3、结论\n这类内容的重点是把零散任务变成更清楚、可持续推进的工作方式。"
-        )
-    else:
-        summary = (
-            "1、内容概览\n当前视频没有可用字幕，先保留标题和简介作为基础信息。\n\n"
-            "2、结论\n后续如果补到字幕，应基于完整文字内容重写核心总结。"
-        )
-    return summary[:300]
+
+    frequencies: Counter[str] = Counter()
+    for sentence in sentences:
+        frequencies.update(summary_terms(sentence))
+
+    heading_sets = {
+        1: ["结论"],
+        2: ["内容脉络", "结论"],
+        3: ["问题与背景", "核心方法", "结论"],
+        4: ["问题与背景", "核心方法", "实际应用", "结论"],
+    }
+    headings = heading_sets[min(4, len(sentences))]
+    used_indexes: set[int] = set()
+    sections: list[str] = []
+    total = len(sentences)
+    for section_index, heading in enumerate(headings):
+        start = section_index * total // len(headings)
+        end = (section_index + 1) * total // len(headings)
+        candidates = list(enumerate(sentences[start:end], start=start))
+        preferred_phrases = SUMMARY_SECTION_PHRASES.get(heading, ())
+        chosen = pick_summary_sentence(candidates, frequencies, used_indexes, preferred_phrases)
+        if chosen is None:
+            chosen = pick_summary_sentence(
+                list(enumerate(sentences)),
+                frequencies,
+                used_indexes,
+                preferred_phrases,
+            )
+        if chosen is None:
+            continue
+        sentence_index, sentence = chosen
+        used_indexes.add(sentence_index)
+        sections.append(f"{len(sections) + 1}、{heading}\n{shorten_summary_sentence(sentence)}")
+
+    summary = "\n\n".join(sections)
+    return summary[:300].rstrip()
 
 
 def run_cli(args: list[str], cwd: pathlib.Path | None = None) -> str:
@@ -400,24 +495,67 @@ def parse_cli_json(output: str) -> dict[str, Any]:
 
 
 def lark_list_records(base_token: str, table_id: str, fields: list[str], limit: int = 200) -> dict[str, Any]:
-    args = [
-        "lark-cli",
-        "base",
-        "+record-list",
-        "--as",
-        "user",
-        "--base-token",
-        base_token,
-        "--table-id",
-        table_id,
-        "--limit",
-        str(limit),
-        "--format",
-        "json",
-    ]
-    for field in fields:
-        args.extend(["--field-id", field])
-    return parse_cli_json(run_cli(args))
+    page_size = max(1, min(limit, 200))
+    offset = 0
+    combined_fields: list[Any] = []
+    combined_rows: list[Any] = []
+    combined_record_ids: list[Any] = []
+    seen_record_ids: set[Any] = set()
+
+    while True:
+        args = [
+            "lark-cli",
+            "base",
+            "+record-list",
+            "--as",
+            "user",
+            "--base-token",
+            base_token,
+            "--table-id",
+            table_id,
+            "--limit",
+            str(page_size),
+            "--offset",
+            str(offset),
+            "--format",
+            "json",
+        ]
+        for field in fields:
+            args.extend(["--field-id", field])
+        response = parse_cli_json(run_cli(args))
+        data = response.get("data") or {}
+        page_fields = data.get("fields") or []
+        page_rows = data.get("data") or []
+        page_record_ids = data.get("record_id_list") or []
+        if not combined_fields:
+            combined_fields = list(page_fields)
+        page_count = max(len(page_rows), len(page_record_ids))
+        if page_record_ids:
+            new_count = 0
+            for index, record_id in enumerate(page_record_ids):
+                if record_id in seen_record_ids:
+                    continue
+                seen_record_ids.add(record_id)
+                combined_record_ids.append(record_id)
+                if index < len(page_rows):
+                    combined_rows.append(page_rows[index])
+                new_count += 1
+            if page_count and not new_count:
+                raise RuntimeError("Feishu record pagination returned the same page twice")
+        else:
+            combined_rows.extend(page_rows)
+
+        if page_count < page_size:
+            break
+        offset += page_count
+
+    return {
+        "data": {
+            "fields": combined_fields,
+            "data": combined_rows,
+            "record_id_list": combined_record_ids,
+        }
+    }
 
 
 def rows_as_maps(response: dict[str, Any]) -> list[tuple[str, dict[str, Any]]]:
@@ -480,13 +618,13 @@ def get_user_info(user_id: str, env: dict[str, str], creator_dir: pathlib.Path) 
     return profile if isinstance(profile, dict) else {}
 
 
-def create_creator(
-    base_token: str,
-    creator_table_id: str,
+def prepare_creator(
     env: dict[str, str],
     note_user: dict[str, Any],
     output_root: pathlib.Path,
-) -> str:
+    download_avatar: bool = True,
+    download_background: bool = True,
+) -> dict[str, Any]:
     name = note_user.get("nickname") or note_user.get("name") or "unknown"
     user_id = note_user.get("userid") or note_user.get("id") or ""
     creator_dir = output_root / "benchmark_creators" / slugify(name)
@@ -497,26 +635,63 @@ def create_creator(
     profile = get_user_info(user_id, env, creator_dir) if user_id else {}
     user_id = profile.get("userid") or profile.get("user_id") or user_id
     red_id = profile.get("red_id") or note_user.get("red_id") or ""
-    desc = profile.get("desc") or ""
-    fans = parse_int(profile.get("fans"))
+    desc = profile.get("desc") or note_user.get("desc") or ""
+    fans_source = profile.get("fans") if "fans" in profile else note_user.get("fans")
+    fans = parse_int(fans_source)
+    fans_available = fans_source not in (None, "")
     likes_and_collects = 0
+    likes_available = False
     for item in profile.get("interactions") or []:
         if isinstance(item, dict) and item.get("type") == "interaction":
             likes_and_collects = parse_int(item.get("count"))
-    profile_url = profile.get("share_link") or (f"https://www.xiaohongshu.com/user/profile/{user_id}" if user_id else "")
-    avatar_url = profile.get("imageb") or profile.get("image") or note_user.get("image_size_large") or note_user.get("image") or ""
+            likes_available = True
+    profile_url = profile.get("share_link") or (
+        f"https://www.xiaohongshu.com/user/profile/{user_id}" if user_id else ""
+    )
+    avatar_url = (
+        profile.get("imageb")
+        or profile.get("image")
+        or note_user.get("image_size_large")
+        or note_user.get("image")
+        or ""
+    )
     banner_url = nested(profile, ["banner_info", "image"], "")
 
     avatar_file = assets_dir / "avatar.webp"
     background_file = assets_dir / "homepage_background.jpg"
-    try:
-        download(avatar_url, avatar_file)
-    except Exception as exc:  # noqa: BLE001
-        eprint(f"Avatar download skipped: {type(exc).__name__}: {exc}")
-    try:
-        download(banner_url, background_file)
-    except Exception as exc:  # noqa: BLE001
-        eprint(f"Background download skipped: {type(exc).__name__}: {exc}")
+    if download_avatar:
+        try:
+            download(avatar_url, avatar_file)
+        except Exception as exc:  # noqa: BLE001
+            eprint(f"Avatar download skipped: {type(exc).__name__}: {exc}")
+    if download_background:
+        try:
+            download(banner_url, background_file)
+        except Exception as exc:  # noqa: BLE001
+            eprint(f"Background download skipped: {type(exc).__name__}: {exc}")
+
+    updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    fields = {
+        "博主名称": name,
+        "小红书用户ID": user_id,
+        "小红书号": red_id,
+        "主页链接": profile_url,
+        "简介": desc,
+        "粉丝量": fans,
+        "获赞和收藏量": likes_and_collects,
+        "最近更新时间": updated_at,
+    }
+    update_fields = {
+        "博主名称": name,
+        "最近更新时间": updated_at,
+    }
+    for field_name in ("小红书用户ID", "小红书号", "主页链接", "简介"):
+        if fields[field_name] not in (None, ""):
+            update_fields[field_name] = fields[field_name]
+    if fans_available:
+        update_fields["粉丝量"] = fans
+    if likes_available:
+        update_fields["获赞和收藏量"] = likes_and_collects
 
     metadata = {
         "user_id": user_id,
@@ -528,13 +703,79 @@ def create_creator(
         "avatar_url": avatar_url,
         "banner_url": banner_url,
         "profile_url": profile_url,
+        "updated_at": updated_at,
     }
     (creator_dir / "creator_metadata.json").write_text(json.dumps(metadata, ensure_ascii=False, indent=2))
+    return {
+        "creator_dir": creator_dir,
+        "assets_dir": assets_dir,
+        "avatar_file": avatar_file,
+        "background_file": background_file,
+        "fields": fields,
+        "update_fields": update_fields,
+    }
 
-    updated_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+def upload_creator_attachments(
+    base_token: str,
+    creator_table_id: str,
+    record_id: str,
+    snapshot: dict[str, Any],
+    existing_fields: dict[str, Any] | None = None,
+) -> None:
+    creator_dir = pathlib.Path(snapshot["creator_dir"])
+    assets_dir = pathlib.Path(snapshot["assets_dir"])
+    attachments = [
+        ("头像", pathlib.Path(snapshot["avatar_file"]), "avatar.webp", "feishu_avatar_attachment.json"),
+        (
+            "主页背景图",
+            pathlib.Path(snapshot["background_file"]),
+            "homepage_background.jpg",
+            "feishu_background_attachment.json",
+        ),
+    ]
+    for field_name, file_path, file_name, result_name in attachments:
+        if not file_path.exists() or (existing_fields and existing_fields.get(field_name)):
+            continue
+        output = run_cli(
+            [
+                "lark-cli",
+                "base",
+                "+record-upload-attachment",
+                "--as",
+                "user",
+                "--base-token",
+                base_token,
+                "--table-id",
+                creator_table_id,
+                "--record-id",
+                record_id,
+                "--field-id",
+                field_name,
+                "--file",
+                f"./{file_name}",
+                "--format",
+                "json",
+            ],
+            cwd=assets_dir,
+        )
+        (creator_dir / result_name).write_text(output)
+
+
+def create_creator(
+    base_token: str,
+    creator_table_id: str,
+    env: dict[str, str],
+    note_user: dict[str, Any],
+    output_root: pathlib.Path,
+) -> str:
+    snapshot = prepare_creator(env, note_user, output_root)
+    fields = snapshot["fields"]
+    creator_dir = pathlib.Path(snapshot["creator_dir"])
+
     payload = {
         "fields": CREATOR_FIELDS,
-        "rows": [[name, user_id, red_id, profile_url, desc, fans, likes_and_collects, updated_at]],
+        "rows": [[fields.get(field) for field in CREATOR_FIELDS]],
     }
     (creator_dir / "feishu_creator_payload.json").write_text(json.dumps(payload, ensure_ascii=False, indent=2))
     output = run_cli(
@@ -556,68 +797,63 @@ def create_creator(
     )
     (creator_dir / "feishu_creator_create.json").write_text(output)
     record_id = parse_cli_json(output)["data"]["record_id_list"][0]
-
-    if avatar_file.exists():
-        output = run_cli(
-            [
-                "lark-cli",
-                "base",
-                "+record-upload-attachment",
-                "--as",
-                "user",
-                "--base-token",
-                base_token,
-                "--table-id",
-                creator_table_id,
-                "--record-id",
-                record_id,
-                "--field-id",
-                "头像",
-                "--file",
-                "./avatar.webp",
-                "--format",
-                "json",
-            ],
-            cwd=assets_dir,
-        )
-        (creator_dir / "feishu_avatar_attachment.json").write_text(output)
-    if background_file.exists():
-        output = run_cli(
-            [
-                "lark-cli",
-                "base",
-                "+record-upload-attachment",
-                "--as",
-                "user",
-                "--base-token",
-                base_token,
-                "--table-id",
-                creator_table_id,
-                "--record-id",
-                record_id,
-                "--field-id",
-                "主页背景图",
-                "--file",
-                "./homepage_background.jpg",
-                "--format",
-                "json",
-            ],
-            cwd=assets_dir,
-        )
-        (creator_dir / "feishu_background_attachment.json").write_text(output)
+    upload_creator_attachments(base_token, creator_table_id, record_id, snapshot)
     return record_id
 
 
+def refresh_creator(
+    base_token: str,
+    creator_table_id: str,
+    record_id: str,
+    env: dict[str, str],
+    note_user: dict[str, Any],
+    output_root: pathlib.Path,
+) -> None:
+    existing_fields = record_map(get_record(base_token, creator_table_id, record_id))
+    snapshot = prepare_creator(
+        env,
+        note_user,
+        output_root,
+        download_avatar=not bool(existing_fields.get("头像")),
+        download_background=not bool(existing_fields.get("主页背景图")),
+    )
+    creator_dir = pathlib.Path(snapshot["creator_dir"])
+    output = run_cli(
+        [
+            "lark-cli",
+            "base",
+            "+record-upsert",
+            "--as",
+            "user",
+            "--base-token",
+            base_token,
+            "--table-id",
+            creator_table_id,
+            "--record-id",
+            record_id,
+            "--json",
+            json.dumps(snapshot["update_fields"], ensure_ascii=False),
+            "--format",
+            "json",
+        ]
+    )
+    (creator_dir / "feishu_creator_update.json").write_text(output)
+    upload_creator_attachments(
+        base_token,
+        creator_table_id,
+        record_id,
+        snapshot,
+        existing_fields=existing_fields,
+    )
+
+
 def find_video_record(base_token: str, video_table_id: str, note_id: str, title: str, watch_link: str) -> str:
-    response = lark_list_records(base_token, video_table_id, ["视频标题", "视频链接"])
+    response = lark_list_records(base_token, video_table_id, ["视频链接"])
     for record_id, row in rows_as_maps(response):
-        row_title = str(row.get("视频标题") or "")
         row_link = str(row.get("视频链接") or "")
         if watch_link and row_link == watch_link:
             return record_id
         if note_id and note_id in row_link:
-            return record_id
-        if title and row_title == title:
             return record_id
     return ""
 
@@ -892,6 +1128,15 @@ def main(argv: Sequence[str] | None = None) -> int:
             creator_record_id = create_creator(
                 settings.feishu_base_token,
                 settings.feishu_creator_table_id,
+                env,
+                user,
+                settings.output_root,
+            )
+        else:
+            refresh_creator(
+                settings.feishu_base_token,
+                settings.feishu_creator_table_id,
+                creator_record_id,
                 env,
                 user,
                 settings.output_root,
