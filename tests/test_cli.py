@@ -243,6 +243,8 @@ class CliTests(unittest.TestCase):
         self.assertNotIn("test-api-key", rendered)
         self.assertIn("问题 1/2", rendered)
         self.assertIn("问题 2/2", rendered)
+        self.assertIn(xhs_ingest.TIKHUB_REGISTER_URL, rendered)
+        self.assertIn("返佣", rendered)
 
 
 if __name__ == "__main__":

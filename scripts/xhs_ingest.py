@@ -22,6 +22,7 @@ from xhs_config import DEFAULT_CONFIG_PATH, resolve_settings, update_toml_sectio
 
 PROJECT_ROOT = pathlib.Path(__file__).resolve().parents[1]
 CONFIG_EXAMPLE = PROJECT_ROOT / "config.example.toml"
+TIKHUB_REGISTER_URL = "https://user.tikhub.io/register?ref=bW0RSDaJ"
 
 NUMBER_STYLE = {"type": "plain", "precision": 0, "thousands_separator": False, "percentage": False}
 CREATOR_SCHEMA = [
@@ -253,6 +254,11 @@ def onboard(
 
     print("\n问题 2/2：填入 TikHub API Key")
     candidate = api_key or settings.tikhub_api_key
+    if not candidate:
+        print("还没有 TikHub 账号时，请通过下面的项目作者推荐链接注册：")
+        print(TIKHUB_REGISTER_URL)
+        print("说明：通过该链接注册可能会给项目作者带来返佣。")
+        print("注册后请在 TikHub 创建 API Key，再填写到下面的隐藏输入框。")
     attempts = 0
     while attempts < 3:
         attempts += 1

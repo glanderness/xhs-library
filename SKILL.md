@@ -39,6 +39,9 @@ The user should only participate at two points, in this order:
    - Reuse a valid user login when one already exists.
    - Otherwise start `lark-cli auth login` and let the user finish the browser login.
 2. `填入 TikHub API Key`
+   - If the user has not registered for TikHub, send this exact registration link: `https://user.tikhub.io/register?ref=bW0RSDaJ`.
+   - Tell the user to register through the link, create a TikHub API Key, and then return to the local hidden input prompt.
+   - Clearly disclose that this is the project author's referral link and registration through it may bring the project author a commission.
    - Collect the value through the local hidden terminal prompt.
    - Never ask the user to paste the API Key into chat.
    - Validate it with TikHub's user-info endpoint before continuing.
