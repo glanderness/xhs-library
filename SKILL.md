@@ -1,6 +1,6 @@
 ---
 name: xhs-tikhub-feishu-ingest
-description: Collect Xiaohongshu/RedNote note data through TikHub, save local artifacts, and optionally append it into a user-configured Feishu Base. Use when the user asks to采集/抓取/同步/入库小红书帖子 or videos, configure TikHub or Feishu ingestion, create the required Base schema, or update this workflow/skill.
+description: Collect Xiaohongshu/RedNote note data through TikHub, save local artifacts, and optionally append it into a user-configured Feishu Base. Use when the user asks to采集/抓取/同步/入库小红书帖子 or videos, says“开始初始化” or asks to initialize/configure TikHub or Feishu, create the required Base schema, or update this workflow/skill.
 ---
 
 # XHS TikHub Feishu Ingest
@@ -20,6 +20,39 @@ The default names are:
 - Base: `小红书视频素材库`
 - Video table: `视频笔记`
 - Creator table: `对标博主`
+
+## One-Sentence Onboarding
+
+When the user says `开始初始化`, start onboarding immediately. Do not respond with clone commands, environment-variable instructions, or a list of manual setup steps.
+
+Run this repository's onboarding command in an interactive terminal:
+
+```bash
+./xhs-ingest onboard
+```
+
+The user should only participate at two points, in this order:
+
+1. `完成飞书本地 CLI 登录`
+   - Detect `lark-cli` automatically.
+   - Install `@larksuite/cli` through npm when it is missing and npm is available.
+   - Reuse a valid user login when one already exists.
+   - Otherwise start `lark-cli auth login` and let the user finish the browser login.
+2. `填入 TikHub API Key`
+   - Collect the value through the local hidden terminal prompt.
+   - Never ask the user to paste the API Key into chat.
+   - Validate it with TikHub's user-info endpoint before continuing.
+
+After those two points, continue without asking for Base IDs, table IDs, output paths, field names, or configuration-file edits. Automatically:
+
+- Create the user configuration and local output directory.
+- Save the TikHub API Key in the local `tikhub.env` file with user-only file permissions.
+- Create or reuse the Feishu Base, video table, creator table, fields, links, and views.
+- Write generated Base and table IDs into the local configuration.
+- Run the full doctor check.
+- Report the local output path and Feishu Base URL.
+
+If the environment cannot provide an interactive terminal, give the user only one fallback command, `./xhs-ingest onboard`; do not return to the old multi-command setup guide.
 
 Expected fields:
 
@@ -44,11 +77,14 @@ If the user changes the Base, read its fields first with `lark-cli base +field-l
 Use the unified command entry point:
 
 ```bash
+./xhs-ingest onboard
 ./xhs-ingest init
 ./xhs-ingest doctor
 ./xhs-ingest setup-feishu
 ./xhs-ingest run "<XHS share link or full share text>"
 ```
+
+Use `onboard` as the default setup path. Treat `init`, `doctor`, and `setup-feishu` as advanced or diagnostic commands rather than steps the user must run manually.
 
 Use `./xhs-ingest setup-feishu --check` to verify an existing Base without changing it. Run `setup-feishu` without `--check` to create missing tables, fields, and views, then save the resulting IDs into the selected local configuration file.
 

@@ -20,94 +20,53 @@
 
 默认不会下载或上传视频文件，只在飞书中保存可打开的小红书链接。
 
-## 运行要求
+## 一句话初始化
 
-- Python 3.9 或更高版本。
-- 可用的 TikHub API Key。
-- 需要飞书同步时，安装并登录 `lark-cli`。
+安装这个 Codex Skill 后，只需要对 Codex 说：
 
-安装飞书命令行工具：
-
-```bash
-npm install -g @larksuite/cli
-lark-cli auth login
+```text
+开始初始化
 ```
 
-## 五分钟开始
+Codex 会自动启动初始化。用户只需要依次完成两件事：
 
-1. 获取项目：
+1. 在自动打开的流程中完成飞书本地 CLI 登录。
+2. 在本地隐藏输入框中填入 TikHub API Key。
+
+其余工作全部自动完成：
+
+- 创建本地配置和输出目录。
+- 检查并自动安装飞书 CLI。
+- 验证飞书登录状态和 TikHub API Key。
+- 创建或复用飞书 Base、视频表和作者表。
+- 创建字段、作者关联、表格视图和卡片视图。
+- 保存 Base 与表格 ID。
+- 运行完整诊断并返回飞书链接和本地目录。
+
+TikHub API Key 只通过本地隐藏输入框采集，保存在用户本机，不会显示在聊天内容、诊断结果或初始化报告中。
+
+## 命令行初始化
+
+不使用 Codex 时，也只需要运行一个命令：
 
 ```bash
 git clone https://github.com/glanderness/xhs-tikhub-feishu-ingest.git
 cd xhs-tikhub-feishu-ingest
+./xhs-ingest onboard
 ```
 
-2. 创建用户配置：
+需要 Python 3.9 或更高版本。系统缺少 `lark-cli` 时，`onboard` 会通过 npm 自动安装。
 
-```bash
-./xhs-ingest init
-```
-
-默认配置位置：
-
-```text
-~/.config/xhs-tikhub-feishu-ingest/config.toml
-```
-
-3. 设置 TikHub API Key：
-
-```bash
-export TIKHUB_API_KEY="your-api-key"
-```
-
-需要长期使用时，可以把环境变量写入自己的终端配置。程序只检查是否已配置，不会在诊断结果中显示具体值。
-
-4. 先检查本地保存模式：
-
-```bash
-./xhs-ingest doctor --skip-feishu
-```
-
-5. 采集一条笔记并仅保存到本地：
-
-```bash
-./xhs-ingest run "http://xhslink.com/o/example" --skip-feishu
-```
-
-默认输出目录为：
-
-```text
-~/xhs-ingest-output
-```
-
-## 启用飞书同步
-
-确认 `lark-cli auth login` 已完成，然后运行：
-
-```bash
-./xhs-ingest setup-feishu
-./xhs-ingest doctor
-```
-
-`setup-feishu` 会：
-
-1. 创建或识别“小红书视频素材库”。
-2. 创建或识别“对标博主”表。
-3. 创建或识别“视频笔记”表。
-4. 补齐必需字段和作者关联字段。
-5. 创建“表格视图”和“卡片视图”。
-6. 把 Base 和两张表的 ID 写入本地配置。
-
-只检查现有 Base、不进行改动：
-
-```bash
-./xhs-ingest setup-feishu --check
-```
-
-完成后可以直接同步：
+初始化完成后直接采集：
 
 ```bash
 ./xhs-ingest run "http://xhslink.com/o/example"
+```
+
+默认输出目录：
+
+```text
+~/xhs-ingest-output
 ```
 
 ## 配置
@@ -118,7 +77,7 @@ export TIKHUB_API_KEY="your-api-key"
 命令参数 > 环境变量 > config.toml > 通用默认值
 ```
 
-可以复制仓库中的 [config.example.toml](config.example.toml)，也可以使用 `./xhs-ingest init` 自动创建。
+通常不需要手动编辑配置。`./xhs-ingest onboard` 会自动创建并填写它。高级用户也可以复制 [config.example.toml](config.example.toml) 或单独运行 `./xhs-ingest init`。
 
 主要环境变量：
 
@@ -143,9 +102,17 @@ export TIKHUB_API_KEY="your-api-key"
 
 ## 命令说明
 
+### `onboard`
+
+推荐的初始化入口。依次完成飞书登录和 TikHub API Key 输入，然后自动完成全部本地与飞书配置。
+
+```bash
+./xhs-ingest onboard
+```
+
 ### `init`
 
-创建配置文件和输出目录。已有配置默认不会被覆盖。
+仅创建配置文件和输出目录，主要用于高级配置。已有配置默认不会被覆盖。
 
 ```bash
 ./xhs-ingest init --output-root ~/Documents/xhs-materials
@@ -229,13 +196,7 @@ assets/subtitle_*.srt
 
 ### `doctor` 提示没有 TikHub API Key
 
-确认当前终端已经设置：
-
-```bash
-export TIKHUB_API_KEY="your-api-key"
-```
-
-也可以在个人 `config.toml` 的 `[tikhub]` 区域填写，但不要提交包含个人配置的文件。
+重新运行 `./xhs-ingest onboard`，在本地隐藏输入框中填写 TikHub API Key。高级用户仍可使用 `TIKHUB_API_KEY` 环境变量。
 
 ### 只想保存本地文件
 
@@ -258,6 +219,12 @@ export TIKHUB_API_KEY="your-api-key"
 ## Codex Skill
 
 仓库本身就是一个 Codex Skill。安装到 Codex Skill 目录后，可以直接用自然语言提出：
+
+```text
+开始初始化
+```
+
+初始化完成后，可以继续提出：
 
 ```text
 用 xhs-tikhub-feishu-ingest 采集这条小红书链接并同步到我的飞书 Base。

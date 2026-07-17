@@ -1,6 +1,9 @@
 import argparse
+import contextlib
+import io
 import os
 import pathlib
+import stat
 import tempfile
 import unittest
 from unittest import mock
@@ -31,6 +34,51 @@ class CliTests(unittest.TestCase):
             created = xhs_ingest.write_initial_config(config_path)
             self.assertFalse(created)
             self.assertEqual(config_path.read_text(encoding="utf-8"), "original")
+
+    def test_tikhub_env_is_written_with_private_file_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            path = pathlib.Path(temp) / "tikhub.env"
+            xhs_ingest.write_tikhub_env(path, "test-api-key", "https://api.tikhub.io")
+            contents = path.read_text(encoding="utf-8")
+            mode = stat.S_IMODE(path.stat().st_mode)
+        self.assertIn("TIKHUB_API_KEY=test-api-key", contents)
+        self.assertEqual(mode, 0o600)
+
+    def test_tikhub_key_validation_accepts_user_info_response(self) -> None:
+        class Response:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+            def read(self):
+                return b'{"code":200,"user_data":{"is_active":true}}'
+
+        valid, message = xhs_ingest.validate_tikhub_api_key(
+            "test-api-key",
+            opener=lambda _request, timeout: Response(),
+        )
+        self.assertTrue(valid)
+        self.assertIn("已验证", message)
+
+    def test_missing_lark_cli_is_installed_automatically(self) -> None:
+        lookup_results = iter([None, "/usr/local/bin/npm", "/usr/local/bin/lark-cli"])
+        commands = []
+
+        def runner(args, **_kwargs):
+            commands.append(args)
+            return mock.Mock(returncode=0)
+
+        path = xhs_ingest.ensure_lark_cli(
+            which=lambda _name: next(lookup_results),
+            runner=runner,
+        )
+        self.assertEqual(path, "/usr/local/bin/lark-cli")
+        self.assertEqual(
+            commands,
+            [["/usr/local/bin/npm", "install", "-g", "@larksuite/cli"]],
+        )
 
     def test_doctor_reports_missing_required_values(self) -> None:
         with tempfile.TemporaryDirectory() as temp, mock.patch.dict(os.environ, {}, clear=True), mock.patch(
@@ -150,6 +198,51 @@ class CliTests(unittest.TestCase):
         self.assertEqual(settings.feishu_video_table_id, "tblVideo")
         self.assertEqual(len(state["set_card_calls"]), 2)
         self.assertEqual(len(state["set_visible_calls"]), 4)
+
+    def test_onboard_only_requires_login_and_local_key_input(self) -> None:
+        with tempfile.TemporaryDirectory() as temp, mock.patch.dict(os.environ, {}, clear=True), mock.patch(
+            "xhs_config.LEGACY_TIKHUB_ENV", pathlib.Path(temp) / "missing.env"
+        ):
+            config_path = pathlib.Path(temp) / "config.toml"
+            output_root = pathlib.Path(temp) / "output"
+            login_calls = []
+
+            def fake_setup(config_path):
+                xhs_ingest.update_toml_section(
+                    config_path,
+                    "feishu",
+                    {
+                        "base_token": "baseNew",
+                        "video_table_id": "tblVideo",
+                        "creator_table_id": "tblCreator",
+                        "base_url": "https://example.feishu.cn/base/baseNew",
+                    },
+                )
+                return {"ok": True}
+
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                report = xhs_ingest.onboard(
+                    config_path=config_path,
+                    output_root=output_root,
+                    key_reader=lambda _prompt: "test-api-key",
+                    cli_ensurer=lambda auto_install: "/fake/lark-cli",
+                    login_ensurer=lambda path: login_calls.append(path),
+                    key_validator=lambda key, base_url: (key == "test-api-key", "TikHub API Key 已验证"),
+                    feishu_setup=fake_setup,
+                    doctor_builder=lambda _path: {"ok": True},
+                )
+            env_path = pathlib.Path(temp) / "tikhub.env"
+            rendered = output.getvalue()
+            env_exists = env_path.exists()
+
+        self.assertTrue(report["ok"])
+        self.assertEqual(login_calls, ["/fake/lark-cli"])
+        self.assertTrue(env_exists)
+        self.assertNotIn("test-api-key", str(report))
+        self.assertNotIn("test-api-key", rendered)
+        self.assertIn("问题 1/2", rendered)
+        self.assertIn("问题 2/2", rendered)
 
 
 if __name__ == "__main__":

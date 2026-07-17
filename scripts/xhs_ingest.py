@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import getpass
 import json
 import os
 import pathlib
@@ -11,6 +12,8 @@ import shutil
 import subprocess
 import sys
 from typing import Any, Sequence
+import urllib.error
+import urllib.request
 from urllib.parse import urlsplit
 
 import ingest_xhs_note
@@ -101,6 +104,199 @@ def write_initial_config(
     settings = resolve_settings(config_path=config_path, environ={})
     settings.output_root.mkdir(parents=True, exist_ok=True)
     return True
+
+
+def write_tikhub_env(path: pathlib.Path, api_key: str, base_url: str) -> None:
+    if not api_key or any(char in api_key for char in "\r\n"):
+        raise ValueError("TikHub API Key is empty or invalid")
+    existing = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
+    updates = {
+        "TIKHUB_API_KEY": api_key,
+        "TIKHUB_BASE_URL": base_url.rstrip("/"),
+    }
+    output: list[str] = []
+    replaced: set[str] = set()
+    for line in existing:
+        stripped = line.strip()
+        if "=" not in stripped or stripped.startswith("#"):
+            output.append(line)
+            continue
+        key = stripped.split("=", 1)[0].strip()
+        if key in updates:
+            output.append(f"{key}={updates[key]}")
+            replaced.add(key)
+        else:
+            output.append(line)
+    for key, value in updates.items():
+        if key not in replaced:
+            output.append(f"{key}={value}")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(path.name + ".tmp")
+    temporary.write_text("\n".join(output).rstrip() + "\n", encoding="utf-8")
+    temporary.chmod(0o600)
+    temporary.replace(path)
+    path.chmod(0o600)
+
+
+def validate_tikhub_api_key(
+    api_key: str,
+    base_url: str = "https://api.tikhub.io",
+    opener: Any = urllib.request.urlopen,
+) -> tuple[bool, str]:
+    endpoint = base_url.rstrip("/") + "/api/v1/tikhub/user/get_user_info"
+    request = urllib.request.Request(
+        endpoint,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Accept": "application/json",
+            "User-Agent": "Codex xhs-tikhub-feishu-ingest",
+        },
+    )
+    try:
+        with opener(request, timeout=20) as response:
+            payload = json.loads(response.read())
+    except urllib.error.HTTPError as exc:
+        if exc.code in {401, 403}:
+            return False, "API Key 未通过校验"
+        return False, f"TikHub 返回 HTTP {exc.code}"
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        return False, f"无法完成 TikHub 校验：{type(exc).__name__}"
+    code = payload.get("code")
+    if code == 200 and (payload.get("user_data") or payload.get("api_key_data")):
+        return True, "TikHub API Key 已验证"
+    return False, "TikHub API Key 未通过校验"
+
+
+def ensure_lark_cli(
+    auto_install: bool = True,
+    which: Any = shutil.which,
+    runner: Any = subprocess.run,
+) -> str:
+    existing = which("lark-cli")
+    if existing:
+        return str(existing)
+    if not auto_install:
+        raise RuntimeError("未找到 lark-cli")
+    npm = which("npm")
+    if not npm:
+        raise RuntimeError("未找到 npm，无法自动安装 lark-cli")
+    print("未检测到飞书 CLI，正在自动安装...")
+    result = runner([npm, "install", "-g", "@larksuite/cli"], text=True)
+    if result.returncode != 0:
+        raise RuntimeError("lark-cli 自动安装失败")
+    installed = which("lark-cli")
+    if not installed:
+        raise RuntimeError("lark-cli 已安装，但当前终端暂时找不到该命令")
+    return str(installed)
+
+
+def lark_user_ready(
+    lark_path: str,
+    runner: Any = subprocess.run,
+) -> bool:
+    result = runner(
+        [lark_path, "auth", "status", "--json", "--verify"],
+        text=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+    )
+    if result.returncode != 0:
+        return False
+    try:
+        payload = ingest_xhs_note.parse_cli_json(result.stdout)
+    except (RuntimeError, json.JSONDecodeError):
+        return False
+    user = ((payload.get("identities") or {}).get("user") or {})
+    return bool(user.get("available") and user.get("verified"))
+
+
+def ensure_lark_login(
+    lark_path: str,
+    runner: Any = subprocess.run,
+) -> None:
+    if lark_user_ready(lark_path, runner=runner):
+        print("飞书 CLI 已登录，自动复用现有登录。")
+        return
+    print("即将打开飞书登录流程，请在浏览器中完成登录。")
+    result = runner([lark_path, "auth", "login"], text=True)
+    if result.returncode != 0 or not lark_user_ready(lark_path, runner=runner):
+        raise RuntimeError("飞书 CLI 登录未完成")
+
+
+def onboard(
+    config_path: pathlib.Path = DEFAULT_CONFIG_PATH,
+    output_root: pathlib.Path | None = None,
+    api_key: str = "",
+    auto_install: bool = True,
+    key_reader: Any = getpass.getpass,
+    cli_ensurer: Any = ensure_lark_cli,
+    login_ensurer: Any = ensure_lark_login,
+    key_validator: Any = validate_tikhub_api_key,
+    feishu_setup: Any = None,
+    doctor_builder: Any = None,
+) -> dict[str, Any]:
+    feishu_setup = feishu_setup or setup_feishu
+    doctor_builder = doctor_builder or build_doctor_report
+    env_path = config_path.expanduser().parent / "tikhub.env"
+    write_initial_config(
+        config_path.expanduser(),
+        output_root=output_root,
+        tikhub_env_file=env_path,
+    )
+    settings = resolve_settings(config_path=config_path)
+    settings.output_root.mkdir(parents=True, exist_ok=True)
+
+    print("开始自动初始化。你只需要完成下面两个步骤。")
+    print("\n问题 1/2：完成飞书本地 CLI 登录")
+    lark_path = cli_ensurer(auto_install=auto_install)
+    login_ensurer(lark_path)
+
+    print("\n问题 2/2：填入 TikHub API Key")
+    candidate = api_key or settings.tikhub_api_key
+    attempts = 0
+    while attempts < 3:
+        attempts += 1
+        if not candidate:
+            candidate = key_reader("TikHub API Key（输入不会显示）: ").strip()
+        valid, message = key_validator(candidate, settings.tikhub_base_url)
+        if valid:
+            print(message)
+            break
+        print(message)
+        candidate = ""
+    else:
+        raise RuntimeError("TikHub API Key 连续三次未通过校验")
+
+    write_tikhub_env(env_path, candidate, settings.tikhub_base_url)
+    update_toml_section(
+        settings.config_path,
+        "tikhub",
+        {"api_key": "", "base_url": settings.tikhub_base_url, "env_file": str(env_path)},
+    )
+
+    print("\n正在自动创建本地目录和飞书多维表格...")
+    feishu_report = feishu_setup(config_path=settings.config_path)
+    if not feishu_report.get("ok"):
+        raise RuntimeError("飞书多维表格初始化未完成")
+    doctor_report = doctor_builder(settings.config_path)
+    if not doctor_report.get("ok"):
+        raise RuntimeError("初始化后的完整检查未通过")
+
+    final_settings = resolve_settings(config_path=settings.config_path)
+    report = {
+        "ok": True,
+        "config_path": str(final_settings.config_path),
+        "output_root": str(final_settings.output_root),
+        "feishu_base_url": final_settings.feishu_base_url,
+        "video_table_id": final_settings.feishu_video_table_id,
+        "creator_table_id": final_settings.feishu_creator_table_id,
+        "tikhub_key_configured": True,
+    }
+    print("\n初始化完成。以后直接发送小红书链接即可开始采集。")
+    if final_settings.feishu_base_url:
+        print(f"飞书多维表格：{final_settings.feishu_base_url}")
+    print(f"本地目录：{final_settings.output_root}")
+    return report
 
 
 def _check(name: str, ok: bool, detail: str, required: bool = True) -> dict[str, Any]:
@@ -710,7 +906,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="xhs-ingest", description="Xiaohongshu to local files and Feishu")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
-    init_parser = subparsers.add_parser("init", help="Create a user configuration file")
+    onboard_parser = subparsers.add_parser("onboard", help="Complete the full two-step initialization")
+    onboard_parser.add_argument("--config", type=pathlib.Path, default=DEFAULT_CONFIG_PATH)
+    onboard_parser.add_argument("--output-root", type=pathlib.Path)
+    onboard_parser.add_argument("--no-auto-install", action="store_true")
+
+    init_parser = subparsers.add_parser("init", help="Create a user configuration file only (advanced)")
     init_parser.add_argument("--config", type=pathlib.Path, default=DEFAULT_CONFIG_PATH)
     init_parser.add_argument("--output-root", type=pathlib.Path)
     init_parser.add_argument("--tikhub-env-file", type=pathlib.Path)
@@ -738,6 +939,14 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
+    if args.command == "onboard":
+        report = onboard(
+            config_path=args.config,
+            output_root=args.output_root,
+            auto_install=not args.no_auto_install,
+        )
+        print(json.dumps(report, ensure_ascii=False, indent=2))
+        return 0
     if args.command == "init":
         created = write_initial_config(
             args.config,
@@ -747,7 +956,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         if created:
             print(f"Created {args.config}")
-            print("Next: set TIKHUB_API_KEY, then run xhs-ingest doctor")
+            print("Next: run xhs-ingest onboard to finish initialization")
             return 0
         print(f"Configuration already exists: {args.config}")
         print("Use --force only when replacing it is intended")
