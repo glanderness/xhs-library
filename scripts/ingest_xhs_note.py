@@ -224,7 +224,7 @@ def fetch_detail(share_text: str, env: dict[str, str]) -> tuple[dict[str, Any], 
     headers = {
         "Authorization": f"Bearer {key}",
         "Accept": "application/json",
-        "User-Agent": "Codex xhs-tikhub-feishu-ingest",
+        "User-Agent": "Codex xhs-library",
     }
     endpoints = [
         "/api/v1/xiaohongshu/app_v2/get_video_note_detail",
@@ -456,7 +456,7 @@ def get_user_info(user_id: str, env: dict[str, str], creator_dir: pathlib.Path) 
     headers = {
         "Authorization": f"Bearer {key}",
         "Accept": "application/json",
-        "User-Agent": "Codex xhs-tikhub-feishu-ingest",
+        "User-Agent": "Codex xhs-library",
     }
     endpoint = "/api/v1/xiaohongshu/app_v2/get_user_info"
     url = base + endpoint + "?" + urllib.parse.urlencode({"user_id": user_id})

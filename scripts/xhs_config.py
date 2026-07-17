@@ -7,14 +7,34 @@ import ast
 import json
 import os
 import pathlib
+import shutil
 from dataclasses import dataclass
 from typing import Any, Mapping
 
 
-APP_NAME = "xhs-tikhub-feishu-ingest"
+APP_NAME = "xhs-library"
+LEGACY_APP_NAME = "xhs-tikhub-feishu-ingest"
 DEFAULT_CONFIG_PATH = pathlib.Path.home() / ".config" / APP_NAME / "config.toml"
-DEFAULT_OUTPUT_ROOT = pathlib.Path.home() / "xhs-ingest-output"
+LEGACY_CONFIG_PATH = pathlib.Path.home() / ".config" / LEGACY_APP_NAME / "config.toml"
+DEFAULT_OUTPUT_ROOT = pathlib.Path.home() / "xhs-library"
 LEGACY_TIKHUB_ENV = pathlib.Path.home() / ".codex" / "mcp" / "tikhub" / "tikhub.env"
+
+
+def migrate_legacy_config() -> pathlib.Path:
+    """Copy the previous project configuration into the new xhs-library location once."""
+    if DEFAULT_CONFIG_PATH.exists() or not LEGACY_CONFIG_PATH.exists():
+        return DEFAULT_CONFIG_PATH
+    DEFAULT_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(LEGACY_CONFIG_PATH, DEFAULT_CONFIG_PATH)
+    legacy_env = LEGACY_CONFIG_PATH.parent / "tikhub.env"
+    new_env = DEFAULT_CONFIG_PATH.parent / "tikhub.env"
+    if legacy_env.exists() and not new_env.exists():
+        shutil.copy2(legacy_env, new_env)
+        text = DEFAULT_CONFIG_PATH.read_text(encoding="utf-8")
+        text = text.replace(str(legacy_env), str(new_env))
+        text = text.replace(f"~/.config/{LEGACY_APP_NAME}/tikhub.env", f"~/.config/{APP_NAME}/tikhub.env")
+        DEFAULT_CONFIG_PATH.write_text(text, encoding="utf-8")
+    return DEFAULT_CONFIG_PATH
 
 
 def _parse_value(raw: str) -> Any:
@@ -155,10 +175,14 @@ def resolve_settings(
 ) -> Settings:
     cli = cli or {}
     environ = environ or os.environ
-    selected_config = _expand_path(
-        _first(config_path, cli.get("config"), environ.get("XHS_INGEST_CONFIG")),
-        DEFAULT_CONFIG_PATH,
+    explicit_config = _first(
+        config_path,
+        cli.get("config"),
+        environ.get("XHS_LIBRARY_CONFIG"),
+        environ.get("XHS_INGEST_CONFIG"),
     )
+    default_config = migrate_legacy_config() if not explicit_config else DEFAULT_CONFIG_PATH
+    selected_config = _expand_path(explicit_config, default_config)
     assert selected_config is not None
     config = load_toml(selected_config)
 
@@ -177,6 +201,7 @@ def resolve_settings(
     output_root = _expand_path(
         _first(
             cli.get("output_root"),
+            environ.get("XHS_LIBRARY_ROOT"),
             environ.get("XHS_OUTPUT_ROOT"),
             _nested(config, "output", "root"),
         ),

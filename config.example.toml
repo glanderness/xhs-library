@@ -1,11 +1,11 @@
-# Copy this file to ~/.config/xhs-tikhub-feishu-ingest/config.toml.
+# Copy this file to ~/.config/xhs-library/config.toml.
 
 [tikhub]
 # Prefer the TIKHUB_API_KEY environment variable for the API key.
 api_key = ""
 base_url = "https://api.tikhub.io"
 # Optional compatibility path for an existing env file.
-env_file = "~/.config/xhs-tikhub-feishu-ingest/tikhub.env"
+env_file = "~/.config/xhs-library/tikhub.env"
 
 [feishu]
 # Fill these values after running setup-feishu or when using an existing Base.
@@ -15,4 +15,4 @@ creator_table_id = ""
 base_url = ""
 
 [output]
-root = "~/xhs-ingest-output"
+root = "~/xhs-library"

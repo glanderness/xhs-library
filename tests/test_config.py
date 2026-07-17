@@ -8,7 +8,7 @@ from unittest import mock
 SCRIPT_DIR = pathlib.Path(__file__).resolve().parents[1] / "scripts"
 os.sys.path.insert(0, str(SCRIPT_DIR))
 
-from xhs_config import resolve_settings, update_toml_section  # noqa: E402
+from xhs_config import migrate_legacy_config, resolve_settings, update_toml_section  # noqa: E402
 
 
 class SettingsTests(unittest.TestCase):
@@ -49,12 +49,13 @@ root = "~/configured-output"
                 environ={
                     "TIKHUB_API_KEY": "from-env",
                     "FEISHU_BASE_TOKEN": "base-env",
-                    "XHS_OUTPUT_ROOT": "/tmp/from-env",
+                    "XHS_LIBRARY_ROOT": "/tmp/from-library-env",
+                    "XHS_OUTPUT_ROOT": "/tmp/from-legacy-env",
                 },
             )
         self.assertEqual(settings.tikhub_api_key, "from-env")
         self.assertEqual(settings.feishu_base_token, "base-env")
-        self.assertEqual(settings.output_root, pathlib.Path("/tmp/from-env"))
+        self.assertEqual(settings.output_root, pathlib.Path("/tmp/from-library-env"))
 
     def test_cli_overrides_environment_and_config(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -78,7 +79,7 @@ root = "~/configured-output"
         ):
             path = pathlib.Path(temp) / "missing.toml"
             settings = resolve_settings(config_path=path, environ={})
-        self.assertEqual(settings.output_root, pathlib.Path.home() / "xhs-ingest-output")
+        self.assertEqual(settings.output_root, pathlib.Path.home() / "xhs-library")
         self.assertEqual(settings.feishu_base_token, "")
         self.assertEqual(settings.tikhub_base_url, "https://api.tikhub.io")
 
@@ -94,6 +95,21 @@ root = "~/configured-output"
         self.assertEqual(settings.tikhub_api_key, "from-config")
         self.assertEqual(settings.feishu_base_token, "new-base")
         self.assertEqual(settings.feishu_video_table_id, "new-video")
+
+    def test_legacy_config_is_copied_to_xhs_library_path(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            root = pathlib.Path(temp)
+            old_path = root / "old" / "config.toml"
+            new_path = root / "new" / "config.toml"
+            old_path.parent.mkdir(parents=True)
+            old_path.write_text('[output]\nroot = "~/old-library"\n', encoding="utf-8")
+            with mock.patch("xhs_config.LEGACY_CONFIG_PATH", old_path), mock.patch(
+                "xhs_config.DEFAULT_CONFIG_PATH", new_path
+            ):
+                migrated = migrate_legacy_config()
+                migrated_text = new_path.read_text(encoding="utf-8")
+        self.assertEqual(migrated, new_path)
+        self.assertEqual(migrated_text, '[output]\nroot = "~/old-library"\n')
 
 
 if __name__ == "__main__":

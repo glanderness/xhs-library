@@ -93,10 +93,10 @@ def write_initial_config(
         return False
     template = CONFIG_EXAMPLE.read_text(encoding="utf-8")
     if output_root:
-        template = template.replace('root = "~/xhs-ingest-output"', f'root = "{output_root.expanduser()}"')
+        template = template.replace('root = "~/xhs-library"', f'root = "{output_root.expanduser()}"')
     if tikhub_env_file:
         template = template.replace(
-            'env_file = "~/.config/xhs-tikhub-feishu-ingest/tikhub.env"',
+            'env_file = "~/.config/xhs-library/tikhub.env"',
             f'env_file = "{tikhub_env_file.expanduser()}"',
         )
     config_path.parent.mkdir(parents=True, exist_ok=True)
@@ -149,7 +149,7 @@ def validate_tikhub_api_key(
         headers={
             "Authorization": f"Bearer {api_key}",
             "Accept": "application/json",
-            "User-Agent": "Codex xhs-tikhub-feishu-ingest",
+            "User-Agent": "Codex xhs-library",
         },
     )
     try:
@@ -903,7 +903,7 @@ def run_namespace_to_argv(args: argparse.Namespace) -> list[str]:
 
 
 def build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(prog="xhs-ingest", description="Xiaohongshu to local files and Feishu")
+    parser = argparse.ArgumentParser(prog="xhs-library", description="Xiaohongshu content library for local files and Feishu")
     subparsers = parser.add_subparsers(dest="command", required=True)
 
     onboard_parser = subparsers.add_parser("onboard", help="Complete the full two-step initialization")
@@ -956,7 +956,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         if created:
             print(f"Created {args.config}")
-            print("Next: run xhs-ingest onboard to finish initialization")
+            print("Next: run xhs-library onboard to finish initialization")
             return 0
         print(f"Configuration already exists: {args.config}")
         print("Use --force only when replacing it is intended")

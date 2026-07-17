@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Backward-compatible launcher for XHS Library."""
+"""Primary repository launcher for XHS Library."""
 
 import pathlib
 import sys

@@ -1,6 +1,6 @@
 interface:
-  display_name: "XHS TikHub Feishu Ingest"
-  short_description: "One-step setup and XHS-to-Feishu ingestion"
-  default_prompt: "Use $xhs-tikhub-feishu-ingest to start initialization, then collect Xiaohongshu links into my local library and Feishu Base."
+  display_name: "小红书内容库"
+  short_description: "Build a searchable XHS content library"
+  default_prompt: "Use $xhs-library to start initialization, then collect Xiaohongshu links into my local content library and Feishu Base."
 policy:
   allow_implicit_invocation: true
