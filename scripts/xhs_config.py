@@ -12,27 +12,34 @@ from dataclasses import dataclass
 from typing import Any, Mapping
 
 
-APP_NAME = "xhs-library"
+APP_NAME = "beef-xhs-library"
+PREVIOUS_APP_NAME = "xhs-library"
 LEGACY_APP_NAME = "xhs-tikhub-feishu-ingest"
 DEFAULT_CONFIG_PATH = pathlib.Path.home() / ".config" / APP_NAME / "config.toml"
+PREVIOUS_CONFIG_PATH = pathlib.Path.home() / ".config" / PREVIOUS_APP_NAME / "config.toml"
 LEGACY_CONFIG_PATH = pathlib.Path.home() / ".config" / LEGACY_APP_NAME / "config.toml"
-DEFAULT_OUTPUT_ROOT = pathlib.Path.home() / "xhs-library"
+DEFAULT_OUTPUT_ROOT = pathlib.Path.home() / "beef-xhs-library"
 LEGACY_TIKHUB_ENV = pathlib.Path.home() / ".codex" / "mcp" / "tikhub" / "tikhub.env"
 
 
 def migrate_legacy_config() -> pathlib.Path:
-    """Copy the previous project configuration into the new xhs-library location once."""
-    if DEFAULT_CONFIG_PATH.exists() or not LEGACY_CONFIG_PATH.exists():
+    """Copy an earlier project configuration into the beef-xhs-library location once."""
+    source_path = next(
+        (path for path in (PREVIOUS_CONFIG_PATH, LEGACY_CONFIG_PATH) if path.exists()),
+        None,
+    )
+    if DEFAULT_CONFIG_PATH.exists() or source_path is None:
         return DEFAULT_CONFIG_PATH
     DEFAULT_CONFIG_PATH.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(LEGACY_CONFIG_PATH, DEFAULT_CONFIG_PATH)
-    legacy_env = LEGACY_CONFIG_PATH.parent / "tikhub.env"
+    shutil.copy2(source_path, DEFAULT_CONFIG_PATH)
+    legacy_env = source_path.parent / "tikhub.env"
     new_env = DEFAULT_CONFIG_PATH.parent / "tikhub.env"
     if legacy_env.exists() and not new_env.exists():
         shutil.copy2(legacy_env, new_env)
         text = DEFAULT_CONFIG_PATH.read_text(encoding="utf-8")
         text = text.replace(str(legacy_env), str(new_env))
-        text = text.replace(f"~/.config/{LEGACY_APP_NAME}/tikhub.env", f"~/.config/{APP_NAME}/tikhub.env")
+        for old_name in (PREVIOUS_APP_NAME, LEGACY_APP_NAME):
+            text = text.replace(f"~/.config/{old_name}/tikhub.env", f"~/.config/{APP_NAME}/tikhub.env")
         DEFAULT_CONFIG_PATH.write_text(text, encoding="utf-8")
     return DEFAULT_CONFIG_PATH
 
@@ -178,6 +185,7 @@ def resolve_settings(
     explicit_config = _first(
         config_path,
         cli.get("config"),
+        environ.get("BEEF_XHS_LIBRARY_CONFIG"),
         environ.get("XHS_LIBRARY_CONFIG"),
         environ.get("XHS_INGEST_CONFIG"),
     )
@@ -201,6 +209,7 @@ def resolve_settings(
     output_root = _expand_path(
         _first(
             cli.get("output_root"),
+            environ.get("BEEF_XHS_LIBRARY_ROOT"),
             environ.get("XHS_LIBRARY_ROOT"),
             environ.get("XHS_OUTPUT_ROOT"),
             _nested(config, "output", "root"),

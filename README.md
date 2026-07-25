@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/readme/hero.svg" width="100%" alt="小红书内容库：把一条分享链接变成可检索的本地资料，并可选同步到飞书多维表格">
+  <img src="./assets/readme/hero.svg" width="100%" alt="Beef 小红书内容库：把一条分享链接变成可检索的本地资料，并可选同步到飞书多维表格">
 </p>
 
 <p align="center">
@@ -13,7 +13,7 @@
 ## 一条链接，会沉淀成什么
 
 <p align="center">
-  <img src="./assets/readme/output-proof.svg" width="100%" alt="小红书内容库生成的元数据、字幕、核心总结、本地文件和飞书记录">
+  <img src="./assets/readme/output-proof.svg" width="100%" alt="Beef 小红书内容库生成的元数据、字幕、核心总结、本地文件和飞书记录">
 </p>
 
 - 保存标题、作者、简介、发布时间、视频时长和互动数据。
@@ -32,7 +32,7 @@
 
 ```text
 帮我安装这个 skill：
-https://github.com/glanderness/xhs-library
+https://github.com/glanderness/beef-xhs-library
 ```
 
 安装完成后，说：
@@ -49,7 +49,7 @@ https://github.com/glanderness/xhs-library
 其余配置、Base、表格、字段和视图会自动创建或复用。初始化完成后，可以继续说：
 
 ```text
-用 xhs-library 采集这条小红书链接并同步到我的飞书 Base。
+用 beef-xhs-library 采集这条小红书链接并同步到我的飞书 Base。
 ```
 
 TikHub 注册入口：<https://user.tikhub.io/register?ref=bW0RSDaJ>
@@ -57,15 +57,15 @@ TikHub 注册入口：<https://user.tikhub.io/register?ref=bW0RSDaJ>
 ### 路线 B：使用命令行
 
 ```bash
-git clone https://github.com/glanderness/xhs-library.git
-cd xhs-library
-./xhs-library onboard
+git clone https://github.com/glanderness/beef-xhs-library.git
+cd beef-xhs-library
+./beef-xhs-library onboard
 ```
 
 初始化完成后，处理第一条分享内容：
 
 ```bash
-./xhs-library run "<小红书链接或分享文字>"
+./beef-xhs-library run "<小红书链接或分享文字>"
 ```
 
 需要 Python 3.9 或更高版本。系统缺少 `lark-cli` 时，`onboard` 会在 npm 可用的情况下自动安装。
@@ -73,10 +73,10 @@ cd xhs-library
 只保存本地文件、不写入飞书：
 
 ```bash
-./xhs-library run "<小红书链接或分享文字>" --skip-feishu
+./beef-xhs-library run "<小红书链接或分享文字>" --skip-feishu
 ```
 
-默认本地内容库目录为 `~/xhs-library`。
+默认本地内容库目录为 `~/beef-xhs-library`。
 
 ## 工作原理
 
@@ -97,18 +97,19 @@ cd xhs-library
 ## 常用命令
 
 ```bash
-./xhs-library onboard              # 完整初始化
-./xhs-library init                 # 只创建本地配置
-./xhs-library doctor               # 检查配置和依赖
-./xhs-library setup-feishu         # 创建或补齐飞书数据结构
-./xhs-library setup-feishu --check # 只检查现有数据结构
-./xhs-library run "<分享内容>"      # 处理一条内容
+./beef-xhs-library onboard              # 完整初始化
+./beef-xhs-library init                 # 只创建本地配置
+./beef-xhs-library doctor               # 检查配置和依赖
+./beef-xhs-library setup-feishu         # 创建或补齐飞书数据结构
+./beef-xhs-library setup-feishu --check # 只检查现有数据结构
+./beef-xhs-library run "<分享内容>"      # 处理一条内容
 ```
 
 旧入口仍然可用：
 
 ```bash
-./xhs-ingest "<小红书链接>"
+./xhs-library run "<小红书链接>"        # 上一版命令名
+./xhs-ingest "<小红书链接>"             # 更早的兼容入口
 python3 scripts/ingest_xhs_note.py "<小红书链接>" --skip-feishu
 ```
 

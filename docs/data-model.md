@@ -20,7 +20,7 @@ assets/subtitle_*.srt
 默认输出目录：
 
 ```text
-~/xhs-library
+~/beef-xhs-library
 ```
 
 ## 视频表

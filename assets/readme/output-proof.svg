@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
-  <title id="title">小红书内容库产物一览</title>
+  <title id="title">Beef 小红书内容库产物一览</title>
   <desc id="desc">展示从分享链接整理出的内容字段、本地文件和飞书表格结构。</desc>
   <rect width="1200" height="520" rx="28" fill="#F7F4EE"/>
   <text x="56" y="62" fill="#1D2229" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif" font-size="38" font-weight="760">一条内容，沉淀为三类可检查的产物</text>

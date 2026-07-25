@@ -16,6 +16,9 @@ import xhs_ingest  # noqa: E402
 
 
 class CliTests(unittest.TestCase):
+    def test_primary_command_uses_beef_name(self) -> None:
+        self.assertEqual(xhs_ingest.build_parser().prog, "beef-xhs-library")
+
     def test_init_creates_config_and_output_folder(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = pathlib.Path(temp)
@@ -187,7 +190,7 @@ class CliTests(unittest.TestCase):
             "xhs_config.LEGACY_TIKHUB_ENV", pathlib.Path(temp) / "missing.env"
         ):
             config_path = pathlib.Path(temp) / "config.toml"
-            xhs_ingest.write_initial_config(config_path)
+            xhs_ingest.write_initial_config(config_path, output_root=pathlib.Path(temp) / "output")
             report = xhs_ingest.setup_feishu(config_path=config_path, runner=runner)
             settings = __import__("xhs_config").resolve_settings(config_path=config_path, environ={})
 

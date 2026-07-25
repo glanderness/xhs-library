@@ -49,13 +49,23 @@ root = "~/configured-output"
                 environ={
                     "TIKHUB_API_KEY": "from-env",
                     "FEISHU_BASE_TOKEN": "base-env",
+                    "BEEF_XHS_LIBRARY_ROOT": "/tmp/from-beef-env",
                     "XHS_LIBRARY_ROOT": "/tmp/from-library-env",
                     "XHS_OUTPUT_ROOT": "/tmp/from-legacy-env",
                 },
             )
         self.assertEqual(settings.tikhub_api_key, "from-env")
         self.assertEqual(settings.feishu_base_token, "base-env")
-        self.assertEqual(settings.output_root, pathlib.Path("/tmp/from-library-env"))
+        self.assertEqual(settings.output_root, pathlib.Path("/tmp/from-beef-env"))
+
+    def test_previous_environment_name_remains_supported(self) -> None:
+        with tempfile.TemporaryDirectory() as temp:
+            path = self.write_config(pathlib.Path(temp))
+            settings = resolve_settings(
+                config_path=path,
+                environ={"XHS_LIBRARY_ROOT": "/tmp/from-previous-env"},
+            )
+        self.assertEqual(settings.output_root, pathlib.Path("/tmp/from-previous-env"))
 
     def test_cli_overrides_environment_and_config(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
@@ -79,7 +89,7 @@ root = "~/configured-output"
         ):
             path = pathlib.Path(temp) / "missing.toml"
             settings = resolve_settings(config_path=path, environ={})
-        self.assertEqual(settings.output_root, pathlib.Path.home() / "xhs-library")
+        self.assertEqual(settings.output_root, pathlib.Path.home() / "beef-xhs-library")
         self.assertEqual(settings.feishu_base_token, "")
         self.assertEqual(settings.tikhub_base_url, "https://api.tikhub.io")
 
@@ -96,16 +106,17 @@ root = "~/configured-output"
         self.assertEqual(settings.feishu_base_token, "new-base")
         self.assertEqual(settings.feishu_video_table_id, "new-video")
 
-    def test_legacy_config_is_copied_to_xhs_library_path(self) -> None:
+    def test_previous_config_is_copied_to_beef_xhs_library_path(self) -> None:
         with tempfile.TemporaryDirectory() as temp:
             root = pathlib.Path(temp)
             old_path = root / "old" / "config.toml"
             new_path = root / "new" / "config.toml"
             old_path.parent.mkdir(parents=True)
             old_path.write_text('[output]\nroot = "~/old-library"\n', encoding="utf-8")
-            with mock.patch("xhs_config.LEGACY_CONFIG_PATH", old_path), mock.patch(
-                "xhs_config.DEFAULT_CONFIG_PATH", new_path
-            ):
+            missing_legacy_path = root / "missing" / "config.toml"
+            with mock.patch("xhs_config.PREVIOUS_CONFIG_PATH", old_path), mock.patch(
+                "xhs_config.LEGACY_CONFIG_PATH", missing_legacy_path
+            ), mock.patch("xhs_config.DEFAULT_CONFIG_PATH", new_path):
                 migrated = migrate_legacy_config()
                 migrated_text = new_path.read_text(encoding="utf-8")
         self.assertEqual(migrated, new_path)

@@ -1,9 +1,9 @@
 ---
-name: xhs-library
-description: Collect Xiaohongshu/RedNote note data through TikHub, save local artifacts, and optionally append it into a user-configured Feishu Base. Use when the user asks to采集/抓取/同步/入库小红书帖子 or videos, says“开始初始化” or asks to initialize/configure TikHub or Feishu, create the required Base schema, or update this workflow/skill.
+name: beef-xhs-library
+description: Collect Xiaohongshu/RedNote note data through TikHub, save local artifacts, and optionally append it into a user-configured Feishu Base. Use when the user asks to采集/抓取/同步/入库小红书帖子 or videos, mentions beef-xhs-library or the previous xhs-library name, says“开始初始化” or asks to initialize/configure TikHub or Feishu, create the required Base schema, or update this workflow/skill.
 ---
 
-# 小红书内容库 (XHS Library)
+# Beef 小红书内容库 (Beef XHS Library)
 
 ## Purpose
 
@@ -11,7 +11,7 @@ Use this skill to turn one or more Xiaohongshu share links into local artifacts 
 
 ## Configuration
 
-Load configuration in this priority order: command options, environment variables, `config.toml`, then portable defaults. Use `~/.config/xhs-library/config.toml` by default or pass `--config <path>`. Automatically migrate the previous `~/.config/xhs-tikhub-feishu-ingest/config.toml` when the new path does not exist.
+Load configuration in this priority order: command options, environment variables, `config.toml`, then portable defaults. Use `~/.config/beef-xhs-library/config.toml` by default or pass `--config <path>`. Automatically migrate `~/.config/xhs-library/config.toml` or the earlier `~/.config/xhs-tikhub-feishu-ingest/config.toml` when the new path does not exist.
 
 Use the repository's `config.example.toml` as the configuration template. Never commit a populated user configuration file.
 
@@ -28,7 +28,7 @@ When the user says `开始初始化`, start onboarding immediately. Do not respo
 Run this repository's onboarding command in an interactive terminal:
 
 ```bash
-./xhs-library onboard
+./beef-xhs-library onboard
 ```
 
 The user should only participate at two points, in this order:
@@ -54,7 +54,7 @@ After those two points, continue without asking for Base IDs, table IDs, output 
 - Run the full doctor check.
 - Report the local output path and Feishu Base URL.
 
-If the environment cannot provide an interactive terminal, give the user only one fallback command, `./xhs-library onboard`; do not return to the old multi-command setup guide.
+If the environment cannot provide an interactive terminal, give the user only one fallback command, `./beef-xhs-library onboard`; do not return to the old multi-command setup guide.
 
 Expected fields:
 
@@ -79,18 +79,18 @@ If the user changes the Base, read its fields first with `lark-cli base +field-l
 Use the unified command entry point:
 
 ```bash
-./xhs-library onboard
-./xhs-library init
-./xhs-library doctor
-./xhs-library setup-feishu
-./xhs-library run "<XHS share link or full share text>"
+./beef-xhs-library onboard
+./beef-xhs-library init
+./beef-xhs-library doctor
+./beef-xhs-library setup-feishu
+./beef-xhs-library run "<XHS share link or full share text>"
 ```
 
 Use `onboard` as the default setup path. Treat `init`, `doctor`, and `setup-feishu` as advanced or diagnostic commands rather than steps the user must run manually.
 
-Use `./xhs-library setup-feishu --check` to verify an existing Base without changing it. Run `setup-feishu` without `--check` to create missing tables, fields, and views, then save the resulting IDs into the selected local configuration file.
+Use `./beef-xhs-library setup-feishu --check` to verify an existing Base without changing it. Run `setup-feishu` without `--check` to create missing tables, fields, and views, then save the resulting IDs into the selected local configuration file.
 
-Keep `./xhs-ingest` as a backward-compatible command alias for existing users.
+Keep `./xhs-library` and `./xhs-ingest` as backward-compatible command aliases for existing users.
 
 Keep `python scripts/ingest_xhs_note.py ...` as a backward-compatible direct ingestion entry point.
 

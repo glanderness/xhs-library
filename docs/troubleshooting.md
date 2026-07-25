@@ -5,7 +5,7 @@
 通过项目推荐入口 [注册 TikHub](https://user.tikhub.io/register?ref=bW0RSDaJ)，创建 API Key 后重新运行：
 
 ```bash
-./xhs-library onboard
+./beef-xhs-library onboard
 ```
 
 在本地隐藏输入框中填写。高级用户也可以使用 `TIKHUB_API_KEY` 环境变量。
@@ -21,7 +21,7 @@
 例如：
 
 ```bash
-./xhs-library run "<分享链接>" --skip-feishu
+./beef-xhs-library run "<分享链接>" --skip-feishu
 ```
 
 ## 已经有自己的飞书 Base
@@ -29,7 +29,7 @@
 在 `config.toml` 中填写 Base 和表格 ID，然后执行：
 
 ```bash
-./xhs-library setup-feishu --check
+./beef-xhs-library setup-feishu --check
 ```
 
 如果发现字段缺失，去掉 `--check` 后重新运行，即可创建或补齐缺少的内容。
@@ -43,5 +43,5 @@
 可以。旧命令、旧环境变量和旧配置目录继续兼容。新配置不存在时，程序会把旧配置迁移到：
 
 ```text
-~/.config/xhs-library
+~/.config/beef-xhs-library
 ```
