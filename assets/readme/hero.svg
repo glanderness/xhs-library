@@ -16,7 +16,7 @@
   <path d="M0 318 C220 260 345 390 560 326 C760 268 930 340 1200 278 L1200 400 L0 400 Z" fill="#FFFFFF" opacity="0.025"/>
 
   <g id="title-block" transform="translate(64 54)" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif">
-    <rect width="190" height="34" rx="17" fill="#FF5A64" opacity="0.14"/>
+    <rect width="238" height="34" rx="17" fill="#FF5A64" opacity="0.14"/>
     <circle cx="20" cy="17" r="5" fill="#FF5A64"/>
     <text x="34" y="23" fill="#FF8A91" font-size="16" font-weight="700" letter-spacing="1.4">CODEX SKILL + CLI</text>
 
@@ -33,30 +33,30 @@
   </g>
 
   <g id="project-proof" transform="translate(660 48)" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif">
-    <path d="M92 73 C160 73 155 158 222 158 C288 158 283 246 350 246" fill="none" stroke="url(#link-flow)" stroke-width="4" stroke-linecap="round"/>
-    <circle cx="92" cy="73" r="7" fill="#FF5A64"/>
-    <circle cx="222" cy="158" r="7" fill="#9A78FF"/>
-    <circle cx="350" cy="246" r="7" fill="#3370FF"/>
+    <path d="M92 60 C160 60 155 183 222 183 C288 183 283 302 350 302" fill="none" stroke="url(#link-flow)" stroke-width="4" stroke-linecap="round"/>
+    <circle cx="92" cy="60" r="7" fill="#FF5A64"/>
+    <circle cx="222" cy="183" r="7" fill="#9A78FF"/>
+    <circle cx="350" cy="302" r="7" fill="#3370FF"/>
 
-    <g transform="translate(0 20)">
-      <rect width="300" height="104" rx="18" fill="#20242C" stroke="#3A404B"/>
+    <g transform="translate(0 12)">
+      <rect width="300" height="96" rx="18" fill="#20242C" stroke="#3A404B"/>
       <text x="22" y="31" fill="#FF8A91" font-size="16" font-weight="700">01 · 分享链接</text>
-      <text x="22" y="66" fill="#F4F5F7" font-size="23" font-weight="650">xhslink.com/o/...</text>
-      <text x="22" y="90" fill="#929CAA" font-size="16">短链接 / 完整链接 / 分享文字</text>
+      <text x="22" y="64" fill="#F4F5F7" font-size="23" font-weight="650">xhslink.com/o/...</text>
+      <text x="22" y="87" fill="#929CAA" font-size="16">短链接 / 完整链接 / 分享文字</text>
     </g>
 
-    <g transform="translate(118 126)">
-      <rect width="330" height="116" rx="18" fill="#20242C" stroke="#3A404B"/>
+    <g transform="translate(118 130)">
+      <rect width="330" height="106" rx="18" fill="#20242C" stroke="#3A404B"/>
       <text x="22" y="31" fill="#B79BFF" font-size="16" font-weight="700">02 · 本地资料</text>
-      <text x="22" y="67" fill="#F4F5F7" font-size="21" font-weight="650">note.md · transcript · summary</text>
-      <text x="22" y="94" fill="#929CAA" font-size="16">保留原始响应与执行报告</text>
+      <text x="22" y="65" fill="#F4F5F7" font-size="21" font-weight="650">note.md · transcript · summary</text>
+      <text x="22" y="91" fill="#929CAA" font-size="16">保留原始响应与执行报告</text>
     </g>
 
-    <g transform="translate(238 246)">
-      <rect width="300" height="100" rx="18" fill="#20242C" stroke="#3A404B"/>
-      <text x="22" y="31" fill="#6EA0FF" font-size="16" font-weight="700">03 · 飞书内容库</text>
-      <text x="22" y="65" fill="#F4F5F7" font-size="22" font-weight="650">视频笔记 ↔ 对标博主</text>
-      <text x="22" y="88" fill="#929CAA" font-size="16">可选同步 · 自动关联</text>
+    <g transform="translate(238 258)">
+      <rect width="300" height="88" rx="18" fill="#20242C" stroke="#3A404B"/>
+      <text x="22" y="28" fill="#6EA0FF" font-size="16" font-weight="700">03 · 飞书内容库</text>
+      <text x="22" y="57" fill="#F4F5F7" font-size="22" font-weight="650">视频笔记 ↔ 对标博主</text>
+      <text x="22" y="78" fill="#929CAA" font-size="16">可选同步 · 自动关联</text>
     </g>
   </g>
 </svg>
