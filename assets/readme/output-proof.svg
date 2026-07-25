@@ -1,0 +1,80 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="520" viewBox="0 0 1200 520" role="img" aria-labelledby="title desc">
+  <title id="title">小红书内容库产物一览</title>
+  <desc id="desc">展示从分享链接整理出的内容字段、本地文件和飞书表格结构。</desc>
+  <rect width="1200" height="520" rx="28" fill="#F7F4EE"/>
+  <text x="56" y="62" fill="#1D2229" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif" font-size="38" font-weight="760">一条内容，沉淀为三类可检查的产物</text>
+  <text x="56" y="94" fill="#68717D" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif" font-size="18">基于当前命令行输出目录与飞书字段定义</text>
+
+  <g transform="translate(54 126)" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif">
+    <rect width="330" height="338" rx="22" fill="#FFFFFF" stroke="#D9D5CE" stroke-width="2"/>
+    <rect width="330" height="58" rx="22" fill="#FF5A64"/>
+    <rect y="36" width="330" height="22" fill="#FF5A64"/>
+    <text x="24" y="38" fill="#FFFFFF" font-size="21" font-weight="730">结构化内容</text>
+
+    <g transform="translate(24 84)">
+      <text x="0" y="0" fill="#7B8490" font-size="15" font-weight="700">视频标题</text>
+      <text x="0" y="29" fill="#20252C" font-size="22" font-weight="680">真实标题与作者资料</text>
+      <line x1="0" y1="48" x2="282" y2="48" stroke="#E6E2DC"/>
+
+      <text x="0" y="79" fill="#7B8490" font-size="15" font-weight="700">保存字段</text>
+      <g transform="translate(0 96)" font-size="16" fill="#3E4650">
+        <rect width="74" height="32" rx="16" fill="#FFF0F1"/><text x="17" y="22">封面</text>
+        <rect x="82" width="74" height="32" rx="16" fill="#F0F3FF"/><text x="99" y="22">字幕</text>
+        <rect x="164" width="118" height="32" rx="16" fill="#F0F8F5"/><text x="180" y="22">互动数据</text>
+      </g>
+
+      <text x="0" y="165" fill="#7B8490" font-size="15" font-weight="700">核心总结</text>
+      <text x="0" y="195" fill="#20252C" font-size="18">从完整字幕提炼重点，</text>
+      <text x="0" y="222" fill="#20252C" font-size="18">保留可继续编辑的文本。</text>
+    </g>
+  </g>
+
+  <path d="M402 295 H430" stroke="#AEB6C2" stroke-width="3" stroke-linecap="round"/>
+  <path d="M422 286 L431 295 L422 304" fill="none" stroke="#AEB6C2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <g transform="translate(444 126)" font-family="ui-monospace,SFMono-Regular,Menlo,monospace">
+    <rect width="330" height="338" rx="22" fill="#171A20"/>
+    <rect width="330" height="58" rx="22" fill="#222630"/>
+    <rect y="36" width="330" height="22" fill="#222630"/>
+    <circle cx="24" cy="29" r="6" fill="#FF5A64"/>
+    <circle cx="44" cy="29" r="6" fill="#E9B949"/>
+    <circle cx="64" cy="29" r="6" fill="#4CC38A"/>
+    <text x="91" y="36" fill="#DCE1E8" font-size="18" font-weight="700">本地内容目录</text>
+
+    <g transform="translate(24 88)" font-size="18">
+      <text x="0" y="0" fill="#8CB4FF">note-folder/</text>
+      <text x="20" y="38" fill="#DCE1E8">├── raw_video.json</text>
+      <text x="20" y="72" fill="#DCE1E8">├── note_metadata.json</text>
+      <text x="20" y="106" fill="#DCE1E8">├── note.md</text>
+      <text x="20" y="140" fill="#DCE1E8">├── transcript_zh-CN.txt</text>
+      <text x="20" y="174" fill="#DCE1E8">├── core_summary.txt</text>
+      <text x="20" y="208" fill="#DCE1E8">├── ingest_report.json</text>
+      <text x="20" y="242" fill="#DCE1E8">└── assets/cover_original.webp</text>
+    </g>
+  </g>
+
+  <path d="M792 295 H820" stroke="#AEB6C2" stroke-width="3" stroke-linecap="round"/>
+  <path d="M812 286 L821 295 L812 304" fill="none" stroke="#AEB6C2" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <g transform="translate(834 126)" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif">
+    <rect width="312" height="338" rx="22" fill="#FFFFFF" stroke="#D9D5CE" stroke-width="2"/>
+    <rect width="312" height="58" rx="22" fill="#3370FF"/>
+    <rect y="36" width="312" height="22" fill="#3370FF"/>
+    <text x="24" y="38" fill="#FFFFFF" font-size="21" font-weight="730">飞书内容库</text>
+
+    <g transform="translate(20 82)">
+      <rect width="272" height="96" rx="14" fill="#F2F6FF" stroke="#CFDCFF"/>
+      <text x="18" y="29" fill="#3370FF" font-size="16" font-weight="750">视频笔记</text>
+      <text x="18" y="58" fill="#252B33" font-size="17">标题 · 封面 · 链接 · 总结</text>
+      <text x="18" y="82" fill="#68717D" font-size="15">互动数据 · 发布时间 · 字幕</text>
+
+      <path d="M136 107 V139" stroke="#3370FF" stroke-width="3"/>
+      <circle cx="136" cy="123" r="6" fill="#3370FF"/>
+
+      <rect y="150" width="272" height="96" rx="14" fill="#FFF4F5" stroke="#FFD2D6"/>
+      <text x="18" y="179" fill="#E44752" font-size="16" font-weight="750">对标博主</text>
+      <text x="18" y="208" fill="#252B33" font-size="17">用户 ID · 主页 · 头像 · 简介</text>
+      <text x="18" y="232" fill="#68717D" font-size="15">粉丝量 · 获赞收藏 · 更新时间</text>
+    </g>
+  </g>
+</svg>

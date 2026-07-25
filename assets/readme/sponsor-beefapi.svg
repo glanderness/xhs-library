@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="132" viewBox="0 0 1200 132" role="img" aria-labelledby="title desc">
+  <title id="title">BeefAPI 项目赞助横幅</title>
+  <desc id="desc">找优质算力就上 BeefAPI，网址 beefapi.com。</desc>
+  <rect x="1" y="1" width="1198" height="130" rx="18" fill="#0D1117" stroke="#30363D" stroke-width="2"/>
+  <line x1="760" y1="24" x2="760" y2="108" stroke="#30363D" stroke-width="2"/>
+
+  <g transform="translate(44 30)" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif">
+    <rect width="104" height="28" rx="14" fill="#1F6FEB" opacity="0.18"/>
+    <text x="15" y="20" fill="#79C0FF" font-size="14" font-weight="750" letter-spacing="1.5">SPONSOR</text>
+    <text x="0" y="72" fill="#F0F6FC" font-size="34" font-weight="720">找优质算力就上 BeefAPI</text>
+  </g>
+
+  <g transform="translate(808 34)" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC',sans-serif">
+    <text x="0" y="24" fill="#8B949E" font-size="17" font-weight="650">算力网址</text>
+    <text x="0" y="67" fill="#58A6FF" font-size="31" font-weight="680">beefapi.com</text>
+    <path d="M279 54 L291 66 L279 78" fill="none" stroke="#58A6FF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
